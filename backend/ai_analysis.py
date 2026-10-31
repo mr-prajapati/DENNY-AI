@@ -2,9 +2,13 @@ import os
 import json
 import pandas as pd
 from google import genai
+from query_engine import execute_query
 
 
 def ask_ai_about_data(df, question):
+
+    # Execute user's question using Pandas
+    query_result = execute_query(df, question)
 
     api_key = os.getenv("GEMINI_API_KEY")
 
@@ -78,6 +82,15 @@ def ask_ai_about_data(df, question):
 
     USER QUESTION:
     {question}
+
+    PANDAS QUERY RESULT:
+    {json.dumps(query_result, default=str)}
+
+    IMPORTANT:
+    Use the Pandas Query Result when answering questions
+    that require exact calculations.
+    If the query is not supported, clearly mention that.
+    Do not invent numerical results.
 
     INSTRUCTIONS:
 
