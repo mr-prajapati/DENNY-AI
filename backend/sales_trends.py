@@ -112,6 +112,103 @@ def analyze_sales_trends(daily_sales):
         + "-01"
     ).dt.strftime("%b %Y")
 
+    # Advanced Sales Insights
+
+    monthly_sales = monthly_sales.sort_values(
+        ["Year", "Month"]
+    ).copy()
+
+    # Month-over-Month Growth
+    monthly_sales["MoM_Growth_Percent"] = (
+        monthly_sales["Daily_Sales"]
+        .pct_change(fill_method=None) * 100
+    )
+
+    # Year-over-Year Growth
+    previous_year_sales = monthly_sales[
+        ["Year", "Month", "Daily_Sales"]
+    ].copy()
+
+    previous_year_sales["Year"] += 1
+
+    previous_year_sales = previous_year_sales.rename(
+        columns={
+            "Daily_Sales": "Previous_Year_Sales"
+        }
+    )
+
+    monthly_sales = monthly_sales.merge(
+        previous_year_sales,
+        on=["Year", "Month"],
+        how="left"
+    )
+
+    monthly_sales["YoY_Growth_Percent"] = (
+        (
+            monthly_sales["Daily_Sales"]
+            - monthly_sales["Previous_Year_Sales"]
+        )
+        / monthly_sales["Previous_Year_Sales"]
+    ) * 100
+
+    print("\n========== MONTH-OVER-MONTH GROWTH ==========")
+
+    print(
+        monthly_sales[
+            ["Month_Name", "Daily_Sales", "MoM_Growth_Percent"]
+        ].round(2).to_string(index=False)
+    )
+
+    print("\n========== YEAR-OVER-YEAR GROWTH ==========")
+
+    print(
+        monthly_sales[
+            ["Month_Name", "Daily_Sales", "YoY_Growth_Percent"]
+        ].round(2).to_string(index=False)
+    )
+
+    # Highest and Lowest Revenue Month
+    highest_month = monthly_sales.loc[
+        monthly_sales["Daily_Sales"].idxmax()
+    ]
+
+    lowest_month = monthly_sales.loc[
+        monthly_sales["Daily_Sales"].idxmin()
+    ]
+
+    print("\n========== REVENUE PERFORMANCE ==========")
+
+    print(
+        "Highest Revenue Month:",
+        highest_month["Month_Name"],
+        "| Revenue:",
+        round(highest_month["Daily_Sales"], 2)
+    )
+
+    print(
+        "Lowest Revenue Month:",
+        lowest_month["Month_Name"],
+        "| Revenue:",
+        round(lowest_month["Daily_Sales"], 2)
+    )
+
+    # Monthly Sales Volatility
+    monthly_mean = monthly_sales["Daily_Sales"].mean()
+
+    monthly_std = monthly_sales["Daily_Sales"].std()
+
+    monthly_volatility = (
+        monthly_std / monthly_mean
+    ) * 100
+
+    print("\n========== SALES VOLATILITY ==========")
+
+    print(
+        "Monthly Sales Volatility:",
+        round(monthly_volatility, 2),
+        "%"
+    )
+
     # Weekly Sales Analysis
     df["Day_Name"] = df["Date"].dt.day_name()
 
