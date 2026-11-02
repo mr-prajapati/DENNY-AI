@@ -6,6 +6,7 @@ from data_cleaning import clean_dataset
 from visualization import generate_visualizations
 from pydantic import BaseModel
 from ai_analysis import ask_ai_about_data
+from sales_trends import analyze_sales_trends
 
 # Create FastAPI application
 app = FastAPI(
@@ -241,6 +242,92 @@ async def ask_question(
         raise
 
     except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+@app.post("/sales-insights")
+async def sales_insights(file: UploadFile = File(...)):
+
+    filename = file.filename.lower()
+
+    try:
+
+        contents = await file.read()
+
+        # Read dataset
+        if filename.endswith(".csv"):
+            df = pd.read_csv(BytesIO(contents))
+
+        elif filename.endswith((".xlsx", ".xls")):
+            df = pd.read_excel(BytesIO(contents))
+
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Only CSV and Excel files are supported."
+            )
+
+        if df.empty:
+            raise HTTPException(
+                status_code=400,
+                detail="Dataset is empty."
+            )
+
+        # Check required columns
+        required_columns = ["Date", "TotalPrice"]
+
+        for column in required_columns:
+
+            if column not in df.columns:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Required column missing: {column}"
+                )
+
+        # Prepare data
+        df["Date"] = pd.to_datetime(
+            df["Date"], errors="coerce"
+        )
+
+        df["TotalPrice"] = pd.to_numeric(
+            df["TotalPrice"], errors="coerce"
+        )
+
+        df = df.dropna(
+            subset=["Date", "TotalPrice"]
+        )
+
+        if df.empty:
+            raise HTTPException(
+                status_code=400,
+                detail="No valid sales records found."
+            )
+
+        # Calculate daily sales
+        daily_sales = (
+            df.groupby(df["Date"].dt.normalize())["TotalPrice"]
+            .sum()
+            .reset_index()
+        )
+
+        daily_sales.columns = ["Date", "Daily_Sales"]
+
+        # Generate business insights
+        result = analyze_sales_trends(daily_sales)
+
+        return {
+            "message": "Sales analysis completed successfully",
+            "filename": file.filename,
+            "results": result
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+
         raise HTTPException(
             status_code=500,
             detail=str(e)
