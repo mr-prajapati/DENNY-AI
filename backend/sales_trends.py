@@ -251,6 +251,112 @@ def analyze_sales_trends(daily_sales):
     print("\nBest Performing Day:", best_day["Day_Name"])
     print("Average Sales:", round(best_day["Daily_Sales"], 2))
 
+    # ==========================================
+    # BUSINESS INSIGHTS GENERATOR
+    # ==========================================
+
+    print("\n========== BUSINESS INSIGHTS ==========")
+
+    # 1. Highest Revenue Month
+    highest_month = monthly_sales.loc[
+        monthly_sales["Daily_Sales"].idxmax()
+    ]
+
+    print(
+        "INSIGHT 1:",
+        f"{highest_month['Month_Name']} recorded the highest revenue "
+        f"of {highest_month['Daily_Sales']:.2f}."
+    )
+
+    # 2. Lowest Revenue Month
+    lowest_month = monthly_sales.loc[
+        monthly_sales["Daily_Sales"].idxmin()
+    ]
+
+    print(
+        "INSIGHT 2:",
+        f"{lowest_month['Month_Name']} recorded the lowest revenue "
+        f"of {lowest_month['Daily_Sales']:.2f}."
+    )
+
+    # 3. Best Performing Weekday
+    weekday_sales = df.copy()
+
+    weekday_sales["Day_Name"] = (
+        weekday_sales["Date"].dt.day_name()
+    )
+
+    weekday_average = weekday_sales.groupby(
+        "Day_Name"
+    )["Daily_Sales"].mean()
+
+    best_day = weekday_average.idxmax()
+
+    print(
+        "INSIGHT 3:",
+        f"{best_day} is the best performing weekday "
+        f"with average sales of {weekday_average.max():.2f}."
+    )
+
+    # 4. Zero Sales Analysis
+    zero_percentage = (
+        len(zero_sales_days) / len(df)
+    ) * 100
+
+    print(
+        "INSIGHT 4:",
+        f"{zero_percentage:.2f}% of calendar days "
+        "had zero recorded sales."
+    )
+
+    # 5. Latest YoY Growth
+    latest_yoy = monthly_sales[
+        monthly_sales["YoY_Growth_Percent"].notna()
+    ]
+
+    if not latest_yoy.empty:
+
+        latest_month = latest_yoy.iloc[-1]
+
+        growth = latest_month["YoY_Growth_Percent"]
+
+        if growth > 0:
+            message = "Sales increased compared to last year."
+        elif growth < 0:
+            message = "Sales decreased compared to last year."
+        else:
+            message = "Sales remained unchanged compared to last year."
+
+        print(
+            "INSIGHT 5:",
+            f"{latest_month['Month_Name']}: {message} "
+            f"YoY Growth: {growth:.2f}%."
+        )
+
+    # 6. Business Recommendation
+    print("\n========== BUSINESS RECOMMENDATIONS ==========")
+
+    if lowest_month["Daily_Sales"] < monthly_sales["Daily_Sales"].mean():
+
+        print(
+            "RECOMMENDATION 1:",
+            "Investigate low-revenue months and identify possible reasons."
+        )
+
+    print(
+        "RECOMMENDATION 2:",
+        f"Plan marketing campaigns and offers around "
+        f"{best_day} to improve sales further."
+    )
+
+    if zero_percentage > 5:
+
+        print(
+            "RECOMMENDATION 3:",
+            "Investigate zero-sales days to identify store closures "
+            "or missing transaction records."
+        )
+
     # Monthly Sales Graph
     plt.figure(figsize=(12, 6))
 
