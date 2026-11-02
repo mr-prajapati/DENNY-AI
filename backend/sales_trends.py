@@ -12,10 +12,91 @@ def analyze_sales_trends(daily_sales):
 
     # Sort data by date
     df = df.sort_values("Date")
+    # Include all calendar dates
+    df = (
+        df.set_index("Date")
+        .asfreq("D")
+        .fillna({"Daily_Sales": 0})
+        .reset_index()
+    )
 
     # Add Year and Month columns
     df["Year"] = df["Date"].dt.year
     df["Month"] = df["Date"].dt.month
+
+    # Zero Sales Days Analysis
+    zero_sales_days = df[df["Daily_Sales"] == 0]
+
+    non_zero_sales_days = df[df["Daily_Sales"] > 0]
+
+    print("\n========== ZERO SALES ANALYSIS ==========")
+
+    print("Total Calendar Days:", len(df))
+    print("Zero Sales Days:", len(zero_sales_days))
+    print("Non-Zero Sales Days:", len(non_zero_sales_days))
+
+    zero_percentage = (
+        len(zero_sales_days) / len(df)
+    ) * 100
+
+    print("Zero Sales Percentage:", round(zero_percentage, 2), "%")
+
+    print("\nZero Sales Dates:")
+
+    print(
+        zero_sales_days["Date"].dt.strftime("%Y-%m-%d").to_list()
+    )
+
+    # Zero Sales Pattern Analysis
+
+    zero_sales_days["Day_Name"] = (
+        zero_sales_days["Date"].dt.day_name()
+    )
+
+    zero_sales_days["Month_Name"] = (
+        zero_sales_days["Date"].dt.strftime("%b %Y")
+    )
+
+    print("\n========== ZERO SALES BY WEEKDAY ==========")
+
+    print(
+        zero_sales_days["Day_Name"]
+        .value_counts()
+    )
+
+    print("\n========== ZERO SALES BY MONTH ==========")
+
+    print(
+        zero_sales_days["Month_Name"]
+        .value_counts()
+    )
+
+    # Consecutive Zero Sales Analysis
+
+    zero_dates = zero_sales_days["Date"].sort_values()
+
+    zero_date_groups = (
+        zero_dates.diff().dt.days.ne(1).cumsum()
+    )
+
+    consecutive_groups = zero_dates.groupby(
+        zero_date_groups
+    )
+
+    print("\n========== CONSECUTIVE ZERO SALES DAYS ==========")
+
+    for _, dates in consecutive_groups:
+
+        if len(dates) >= 2:
+
+            print(
+                "From:",
+                dates.iloc[0].date(),
+                "To:",
+                dates.iloc[-1].date(),
+                "| Consecutive Days:",
+                len(dates)
+            )
 
     # Monthly Sales Analysis
     monthly_sales = (
