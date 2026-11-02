@@ -373,7 +373,7 @@ def analyze_sales_trends(daily_sales):
     plt.tight_layout()
 
     plt.savefig("monthly_sales_trend.png")
-    plt.show()
+    #plt.show()
 
     # Weekly Sales Graph
     plt.figure(figsize=(10, 5))
@@ -389,7 +389,104 @@ def analyze_sales_trends(daily_sales):
     plt.tight_layout()
 
     plt.savefig("weekly_sales_trend.png")
-    plt.show()
+    #plt.show()
+
+    # ==========================================
+    # RETURN BUSINESS ANALYSIS RESULTS
+    # ==========================================
+
+    # Prepare consecutive zero-sales periods
+    consecutive_periods = []
+
+    for _, dates in consecutive_groups:
+
+        if len(dates) >= 2:
+
+            consecutive_periods.append({
+                "start_date": dates.iloc[0].strftime("%Y-%m-%d"),
+                "end_date": dates.iloc[-1].strftime("%Y-%m-%d"),
+                "consecutive_days": len(dates)
+            })
+
+    # Prepare business insights
+    insights = [
+        f"{highest_month['Month_Name']} recorded the highest revenue of {highest_month['Daily_Sales']:.2f}.",
+
+        f"{lowest_month['Month_Name']} recorded the lowest revenue of {lowest_month['Daily_Sales']:.2f}.",
+
+        f"{best_day} is the best performing weekday with average sales of {weekday_average.max():.2f}.",
+
+        f"{zero_percentage:.2f}% of calendar days had zero recorded sales."
+    ]
+
+    if not latest_yoy.empty:
+
+        insights.append(
+            f"{latest_month['Month_Name']}: {message} YoY Growth: {growth:.2f}%."
+        )
+
+    # Prepare recommendations
+    recommendations = []
+
+    if lowest_month["Daily_Sales"] < monthly_sales["Daily_Sales"].mean():
+
+        recommendations.append(
+            "Investigate low-revenue months and identify possible reasons."
+        )
+
+    recommendations.append(
+        f"Plan marketing campaigns around {best_day} to improve sales further."
+    )
+
+    if zero_percentage > 5:
+
+        recommendations.append(
+            "Investigate zero-sales days to identify store closures or missing transaction records."
+        )
+
+    # Return structured results
+    return {
+        "summary": {
+            "total_calendar_days": int(len(df)),
+            "zero_sales_days": int(len(zero_sales_days)),
+            "non_zero_sales_days": int(len(non_zero_sales_days)),
+            "zero_sales_percentage": round(float(zero_percentage), 2)
+        },
+
+        "zero_sales_analysis": {
+            "dates": zero_sales_days["Date"].dt.strftime("%Y-%m-%d").tolist(),
+            "by_weekday": {
+                str(k): int(v)
+                for k, v in zero_sales_days["Day_Name"].value_counts().items()
+            },
+            "by_month": {
+                str(k): int(v)
+                for k, v in zero_sales_days["Month_Name"].value_counts().items()
+            },
+            "consecutive_periods": consecutive_periods
+        },
+
+        "monthly_analysis": monthly_sales.astype(object).where(
+            pd.notna(monthly_sales), None
+        ).to_dict(orient="records"),
+
+        "weekly_analysis": weekly_sales.astype(object).where(
+            pd.notna(weekly_sales), None
+        ).to_dict(orient="records"),
+
+        "revenue_performance": {
+            "highest_month": str(highest_month["Month_Name"]),
+            "highest_revenue": round(float(highest_month["Daily_Sales"]), 2),
+            "lowest_month": str(lowest_month["Month_Name"]),
+            "lowest_revenue": round(float(lowest_month["Daily_Sales"]), 2)
+        },
+
+        "sales_volatility": round(float(monthly_volatility), 2),
+
+        "business_insights": insights,
+
+        "recommendations": recommendations
+    }
 
 
 if __name__ == "__main__":
